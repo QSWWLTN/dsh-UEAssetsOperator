@@ -48,31 +48,8 @@
    `ue_uasset_inspect` 和 `ue_blueprint_python_edit`；也可以显式调用
    `ue-uasset-operator` 配套技能。
 
-## 使用示例
 
-让 DSH 执行类似以下任务即可：
-
-```text
-使用 ue_uasset_inspect，以 registry 模式检查
-X:\MyGame\Content\Characters\Hero.uasset。
-```
-
-使用内置 Python 将蓝图中的变量引用从 `OldHealth` 改为 `Health`：
-
-```text
-使用 ue_blueprint_python_edit，对
-X:\MyGame\Content\Characters\BP_Hero.uasset
-执行 replace_variable_references，将 OldHealth 替换为 Health；我确认写入。
-```
-
-内置 Python 当前只支持以下现有节点操作：
-
-- 替换变量引用节点；
-- 升级旧式运算节点；
-- 删除整个蓝图中没有连接且允许用户删除的节点。
-
-每次受支持的写操作都会先将 `.uasset` 及 sidecar 备份到项目的
-`Saved/DSHUEAssetsOperator/Backups`，随后编译蓝图，只有未出现编译错误时才保存。
+##前置条件
 
 目标 `.uasset` 通常应位于项目或插件的 `Content` 目录中，并保留同名
 `.uexp`、`.ubulk`、`.uptnl` sidecar。项目需要安装匹配的 Unreal Editor，
