@@ -8,7 +8,7 @@
 | Class, registry tags, dependencies | Default inspector run | No | No |
 | Metadata and selected properties | Add `-LoadAsset` | Yes | No |
 | Type-specific payload or graph | Matching Unreal Python/C++ API | Usually | Only if explicitly saved |
-| Interactive visual check | `UnrealEditor.exe` | Yes | Not unless saved |
+| Interactive visual check | Not supported under the no-window policy; explain and stop | N/A | No |
 
 ## Match the engine
 
@@ -17,10 +17,17 @@ Read `EngineAssociation` from the `.uproject`. Resolve launcher versions from `H
 Use `UnrealEditor-Cmd.exe` for UE5 and `UE4Editor-Cmd.exe` for UE4. The commandlet form is:
 
 ```powershell
-UnrealEditor-Cmd.exe <project.uproject> -run=pythonscript -script=<script.py> -unattended -nop4 -nosplash
+UnrealEditor-Cmd.exe <project.uproject> -run=pythonscript -script=<script.py> -unattended -nop4 -nosplash -nullrhi -NoSound -stdout -FullStdOutLogOutput -UTF8Output
 ```
 
-The Python Editor Script Plugin must already be enabled. The full-editor `-ExecutePythonScript=<script.py>` path is appropriate when the script requires a loaded startup level or editor-only context unavailable to the commandlet.
+The Python Editor Script Plugin must already be enabled. Never fall back to the
+full `UnrealEditor.exe` executable. If a script requires a loaded interactive
+editor, startup level, viewport, modal dialog or visual verification, explain
+that it cannot run under the no-window policy and stop.
+
+Hide every child process and redirect its output. With .NET
+`ProcessStartInfo`, set `UseShellExecute=false` and `CreateNoWindow=true`. Treat
+unexpected window creation or a wait for interactive input as a failed run.
 
 ## Translate package paths
 

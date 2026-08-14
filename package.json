@@ -1,8 +1,8 @@
 {
   "name": "@deepseek-dsh-desktop/dsh-ue-uasset-operator",
-  "version": "1.0.0",
+  "version": "1.2.2",
   "private": true,
-  "description": "Native DSH tool and bundled guidance for read-only Unreal Engine uasset inspection",
+  "description": "Native DSH tools for Unreal Engine uasset inspection and the Blueprint node edits exposed by built-in UE Python",
   "type": "module",
   "main": "lib/index.js",
   "scripts": {
@@ -21,6 +21,7 @@
     "deepseek",
     "dsh",
     "unreal-engine",
+    "blueprint",
     "uasset"
   ],
   "peerDependencies": {

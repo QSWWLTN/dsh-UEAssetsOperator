@@ -11,6 +11,11 @@ param(
     [string]$Output,
     [switch]$LoadAsset,
     [switch]$ResolveOnly,
+    [ValidateSet('replace_variable_references', 'upgrade_operator_nodes', 'remove_unused_nodes')]
+    [string]$BlueprintAction,
+    [string]$OldVariableName,
+    [string]$NewVariableName,
+    [switch]$ConfirmWrite,
 
     [ValidateRange(30, 3600)]
     [int]$TimeoutSeconds = 300
@@ -271,12 +276,25 @@ $assetFile = Resolve-RequiredFile $UAsset 'uasset file'
 if ([IO.Path]::GetExtension($assetFile) -ine '.uasset') {
     throw "Expected a .uasset file: $assetFile"
 }
+$isBlueprintEdit = -not [string]::IsNullOrWhiteSpace($BlueprintAction)
+if ($isBlueprintEdit -and -not $ConfirmWrite) {
+    throw '-ConfirmWrite is required for Blueprint mutations.'
+}
+if ($BlueprintAction -eq 'replace_variable_references') {
+    if ([string]::IsNullOrWhiteSpace($OldVariableName) -or [string]::IsNullOrWhiteSpace($NewVariableName)) {
+        throw 'replace_variable_references requires -OldVariableName and -NewVariableName.'
+    }
+    if ($OldVariableName -eq $NewVariableName) {
+        throw 'OldVariableName and NewVariableName must be different.'
+    }
+}
 $projectFile = Resolve-ProjectFile $Project $assetFile
 $packageName = Resolve-PackageName $assetFile $projectFile $AssetPath
 $editorCommand = Resolve-EditorCommand $Engine $projectFile
 $fileInfo = Get-UAssetFileInfo $assetFile
-$inspectorScript = Join-Path $PSScriptRoot 'ue_asset_inspector.py'
-$inspectorScript = Resolve-RequiredFile $inspectorScript 'Bundled Unreal Python inspector'
+$pythonScriptName = if ($isBlueprintEdit) { 'blueprint_python_editor.py' } else { 'ue_asset_inspector.py' }
+$inspectorScript = Join-Path $PSScriptRoot $pythonScriptName
+$inspectorScript = Resolve-RequiredFile $inspectorScript 'Bundled Unreal Python script'
 
 if ($ResolveOnly) {
     [pscustomobject]@{
@@ -285,6 +303,7 @@ if ($ResolveOnly) {
         PackageName = $packageName
         UAsset = $fileInfo
         InspectorScript = $inspectorScript
+        BlueprintAction = $(if ($isBlueprintEdit) { $BlueprintAction } else { $null })
     } | ConvertTo-Json -Depth 8
     return
 }
@@ -303,12 +322,35 @@ if (Test-Path -LiteralPath $reportFile -PathType Leaf) {
     [IO.File]::Delete($reportFile)
 }
 
+$backupInfo = $null
+if ($isBlueprintEdit) {
+    $projectDirectory = Split-Path -Parent $projectFile
+    $backupDirectory = Join-Path $projectDirectory (
+        'Saved\DSHUEAssetsOperator\Backups\{0}-{1}' -f `
+            (Get-Date -Format 'yyyyMMdd-HHmmss'), [guid]::NewGuid().ToString('N')
+    )
+    [void][IO.Directory]::CreateDirectory($backupDirectory)
+    $backupFiles = @()
+    foreach ($sourcePath in @($fileInfo.Path) + @($fileInfo.Sidecars | ForEach-Object { $_.Path })) {
+        $destinationPath = Join-Path $backupDirectory ([IO.Path]::GetFileName($sourcePath))
+        Copy-Item -LiteralPath $sourcePath -Destination $destinationPath
+        $backupFiles += $destinationPath
+    }
+    $backupInfo = [pscustomobject]@{
+        directory = $backupDirectory
+        files = $backupFiles
+    }
+}
+
 $process = $null
 $environmentNames = @(
     'UE_UASSET_INSPECT_FILE',
     'UE_UASSET_INSPECT_PACKAGE',
     'UE_UASSET_INSPECT_OUTPUT',
-    'UE_UASSET_INSPECT_LOAD'
+    'UE_UASSET_INSPECT_LOAD',
+    'UE_BP_PY_ACTION',
+    'UE_BP_PY_OLD_VARIABLE',
+    'UE_BP_PY_NEW_VARIABLE'
 )
 $previousEnvironment = @{}
 foreach ($name in $environmentNames) {
@@ -320,6 +362,9 @@ try {
     [Environment]::SetEnvironmentVariable('UE_UASSET_INSPECT_PACKAGE', $packageName, 'Process')
     [Environment]::SetEnvironmentVariable('UE_UASSET_INSPECT_OUTPUT', $reportFile, 'Process')
     [Environment]::SetEnvironmentVariable('UE_UASSET_INSPECT_LOAD', $(if ($LoadAsset) { '1' } else { '0' }), 'Process')
+    [Environment]::SetEnvironmentVariable('UE_BP_PY_ACTION', $(if ($isBlueprintEdit) { $BlueprintAction } else { $null }), 'Process')
+    [Environment]::SetEnvironmentVariable('UE_BP_PY_OLD_VARIABLE', $(if ($isBlueprintEdit) { $OldVariableName } else { $null }), 'Process')
+    [Environment]::SetEnvironmentVariable('UE_BP_PY_NEW_VARIABLE', $(if ($isBlueprintEdit) { $NewVariableName } else { $null }), 'Process')
 
     $ddcArguments = @('-DDC-ForceMemoryCache')
     if ((Split-Path -Leaf $editorCommand) -ieq 'UnrealEditor-Cmd.exe') {
@@ -333,7 +378,8 @@ try {
         '-unattended',
         '-nop4',
         '-nosplash',
-        '-nullrhi'
+        '-nullrhi',
+        '-NoSound'
     )
     $arguments += $ddcArguments
     $arguments += @(
@@ -363,7 +409,7 @@ try {
     if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
         $process.Kill()
         [void]$process.WaitForExit(5000)
-        throw "Unreal inspection exceeded $TimeoutSeconds seconds and was stopped."
+        throw "Unreal operation exceeded $TimeoutSeconds seconds and was stopped."
     }
     $process.WaitForExit()
     $exitCode = $process.ExitCode
@@ -379,8 +425,12 @@ try {
 
     $jsonText = Get-Content -LiteralPath $reportFile -Raw -Encoding UTF8
     $report = $jsonText | ConvertFrom-Json
+    if ($null -ne $backupInfo) {
+        $report | Add-Member -NotePropertyName backup -NotePropertyValue $backupInfo -Force
+    }
     if (-not $report.success) {
-        throw "Unreal inspection failed (exit $exitCode): $($report.error)`n$logTail"
+        $backupNote = if ($null -ne $backupInfo) { "`nBackup: $($backupInfo.directory)" } else { '' }
+        throw "Unreal operation failed (exit $exitCode): $($report.error)$backupNote`n$logTail"
     }
 
     $report | Add-Member -NotePropertyName wrapper_process -NotePropertyValue ([pscustomobject]@{
