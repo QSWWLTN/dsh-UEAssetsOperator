@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-dsh-desktop/dsh-ue-uasset-operator",
-  "version": "1.2.2",
+  "version": "1.3.0",
   "description": "Native DSH tools for Unreal Engine uasset inspection and the Blueprint node edits exposed by built-in UE Python",
   "type": "module",
   "main": "lib/index.js",

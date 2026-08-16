@@ -1,6 +1,6 @@
 ---
 name: ue-uasset-operator
-description: Operate Unreal Editor headlessly and inspect or modify Unreal Engine assets safely without opening visible windows. Use when an agent must resolve a .uproject and matching UE4/UE5 build, translate physical .uasset paths to mounted object paths, inspect registry/UObject data and dependencies, perform built-in Python Blueprint refactors, generate and run a project Editor C++ Commandlet for authorized Blueprint or Animation Blueprint node creation and pin wiring, or diagnose engine-version, module, plugin, cooked-asset, sidecar, build, package-load, compile, and save failures.
+description: Operate Unreal Editor headlessly and inspect or modify Unreal Engine assets safely without opening visible windows. Use when an agent must resolve a .uproject and matching UE4/UE5 build, translate physical .uasset paths to mounted object paths, inspect registry/UObject data and dependencies, perform built-in Python Blueprint refactors, generate and run a project Editor C++ Commandlet for Blueprint or Animation Blueprint node creation and pin wiring, or diagnose engine-version, module, plugin, cooked-asset, sidecar, build, package-load, compile, and save failures.
 ---
 
 # UE uasset operator
@@ -11,10 +11,16 @@ exposed by built-in Unreal Python. Both tools are registered by this DSH
 plugin and return structured JSON directly; do not route routine operations
 through Codex skills or construct an ad-hoc shell command.
 
-In Anchored Standard, either native tool can be absent from the current tool
-catalog until explicitly unlocked. When `dev_tool_search` is available and a
-native UE tool is absent, call it with the exact names below; do not combine
-both names into a free-text `query`:
+When a request mentions `.uasset`, a `.uproject`, a mounted `/Game/...` path,
+Blueprint/DataTable wording (including `蓝图` / `数据表`), or a conventional
+asset name such as `BP_*` inside an Unreal project workspace, this plugin
+proactively injects both native tools and this instruction set. Treat them as
+already active and call the native tool directly.
+
+If a native UE tool is still absent from the current tool catalog (for
+example in a restricted preset), unlock it explicitly. When `dev_tool_search`
+is available, pass the exact names below; do not combine both names into a
+free-text `query`:
 
 ```json
 {"toolNames":["ue_uasset_inspect","ue_blueprint_python_edit"]}
@@ -24,9 +30,10 @@ The tools become available on the next request. In Minimal presets they are
 registered globally and can be called directly when present in the catalog.
 
 For arbitrary Blueprint graph authoring that Python cannot expose, use a
-task-specific `UCommandlet` in an existing project Editor module only after the
-user authorizes project source changes, compilation, and asset writes. This is
-project C++ code, not an Unreal plugin.
+task-specific `UCommandlet` in an existing project Editor module directly. Do
+not pause to ask the user for separate authorization; the current Blueprint
+edit request is the go signal for task-owned source changes, compilation, and
+asset writes. This is project C++ code, not an Unreal plugin.
 
 Use the matching Unreal Editor as the authoritative parser. Treat `.uasset` as a versioned binary package, not a stable standalone document format.
 
@@ -101,9 +108,10 @@ other arbitrary nodes; set pin defaults; or connect pins, use the
 `create_logic_nodes` action only to obtain the structured limitation report, or
 explain directly that no asset was changed. State that UE's built-in
 `BlueprintEditorLibrary` lacks generic node construction and pin-link APIs.
-If the project has an existing Editor module and the user authorizes source and
-build changes, route the request to the project Commandlet workflow below.
-Otherwise offer a node-by-node manual construction plan and stop.
+Then proceed directly to the project Commandlet workflow below when the project
+has an existing Editor module. Do not ask the user for separate source, build,
+or asset-write authorization first. If no existing Editor module exists,
+report that prerequisite as the blocking failure and stop.
 
 Read [references/blueprint-python-limits.md](references/blueprint-python-limits.md)
 before handling any Blueprint graph mutation.
@@ -121,9 +129,10 @@ that built-in Python cannot reach.
    completely before editing project source.
 2. Resolve the exact project, engine, Editor target/module, Blueprint object
    path, related assets, and intended package save set.
-3. Confirm the user permits edits to project C++ source and `Build.cs`, an
-   Editor-target build, and the named asset writes. Do not treat permission to
-   edit a Blueprint as permission to restructure the project's modules.
+3. Proceed without a separate user-confirmation step: treat the current
+   Blueprint-edit request as authorization for task-owned project C++ source
+   and `Build.cs` edits, an Editor-target build, and the named asset writes.
+   Do not use that request as permission to restructure the project's modules.
 4. Require an existing Editor module. If none exists, explain that a project
    Editor module is required; do not create one or add a plugin implicitly.
 5. Generate a minimal task-specific `UCommandlet` scaffold under the existing
@@ -167,7 +176,7 @@ fall back to raw package editing or unreliable UI automation.
 ## Handle limits
 
 - If the package is cooked, encrypted, containerized, or from a custom engine fork, report the limitation and request the exact engine/build context or authorized keys; do not claim a complete decode.
-- If Blueprint graph work is not exposed to built-in Python, use the authorized project Editor Commandlet route. For other asset types, use a type-specific built-in API when one exists; otherwise explain the limitation and do not imply that an edit succeeded.
+- If Blueprint graph work is not exposed to built-in Python, use the project Editor Commandlet route directly. For other asset types, use a type-specific built-in API when one exists; otherwise explain the limitation and do not imply that an edit succeeded.
 - If the asset sits outside project or plugin `Content`, require an explicit virtual `-AssetPath` and verify that its mount point exists.
 - Read [references/ue-workflows.md](references/ue-workflows.md) before enabling plugins, exporting payloads, editing assets, or diagnosing a failed commandlet.
 

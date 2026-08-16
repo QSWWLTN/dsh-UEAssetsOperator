@@ -6,6 +6,11 @@
   运行时依赖。
 - 通过 `ctx.tools.register()` 注册原生工具 `ue_uasset_inspect` 和
   `ue_blueprint_python_edit`。
+- 当用户消息出现 `.uasset` / `.uproject` / `/Game/...`、Blueprint /
+  DataTable（含 `蓝图` / `数据表`）等明确意图，或 UE 项目目录中的
+  `BP_*` 等资产名时，插件会**主动注入**上述两个工具 schema 和完整
+  `ue-uasset-operator` 操作说明，引导模型直接调用原生工具而不是用
+  `strings`、十六进制或自写脚本解析 `.uasset`。
 - 当宿主提供 `skills` 服务时，通过 `ctx.skills.register()` 注册配套的
   DSH 内置操作说明；仅提供 `tools` 的极简宿主仍可使用原生工具。
 - `skills/ue-uasset-operator` 保存 PowerShell 启动器、Unreal Python
@@ -79,9 +84,11 @@ dsh web --patch X:\Tools\ue-assets.patch.yml --host 127.0.0.1 --port 0
 
 - 官方极简模式和 `极简模式_win` 会继承全局注册的两个 UE 工具，可以直接
   调用。
-- `Anchored Standard` 首轮只暴露固定的 `bash` 与
-  `str_replace_editor`。进入提升阶段后，先通过 `skill_search` / `skill_load`
-  加载 `ue-uasset-operator`；若两个 UE 工具尚未出现，调用：
+- `Anchored Standard` 会按上文规则在检测到 `.uasset` 意图时主动把
+  `ue_uasset_inspect` 和 `ue_blueprint_python_edit` 加回当前工具 schema，
+  因此命中的那一轮即可直接调用，不必等待解锁。
+- 若两个 UE 工具因宿主策略仍未出现，进入提升阶段后先通过
+  `skill_search` / `skill_load` 加载 `ue-uasset-operator`；随后调用：
 
   ```json
   {"toolNames":["ue_uasset_inspect","ue_blueprint_python_edit"]}

@@ -13,9 +13,9 @@
 - [Primary references](#primary-references)
 
 Use this route when built-in Unreal Python cannot perform the requested standard
-Blueprint or Animation Blueprint graph edit and the user authorizes project C++
-source changes, compilation, and asset writes. This adds code to an existing
-project Editor module; it does not add an engine plugin.
+Blueprint or Animation Blueprint graph edit. Do not pause for a separate user
+authorization; the current edit request is the go signal. This adds code to an
+existing project Editor module; it does not add an engine plugin.
 
 ## Preconditions
 
@@ -26,8 +26,10 @@ project Editor module; it does not add an engine plugin.
 - Require a working compiler/toolchain for the project's exact engine build.
 - Require a headless build and execution route. Do not open Unreal Editor,
   Visual Studio, a visible terminal, a modal dialog, or any UI automation.
-- Ask for explicit authorization before writing project source, changing
-  `Build.cs`, compiling, or applying asset changes.
+- Proceed directly after Python reports a limitation: do not ask for separate
+  authorization for task-owned project source edits, `Build.cs` changes,
+  Editor-target builds, or the named asset writes. Treat the current Blueprint
+  edit request as that authorization.
 - Do not stop another Editor/build process automatically. Report DLL locks and
   ask the user to close the relevant process.
 
@@ -66,7 +68,7 @@ its generated header, and override `Main`. The implementation must:
   save failure;
 - maintain a local explicit `PackagesToSave` collection;
 - mark and compile the primary Blueprint without an implicit save;
-- save only the explicitly authorized packages after compilation succeeds.
+- save only the explicit task save set after compilation succeeds.
 
 The generated `-Apply` branch deliberately returns an error until task logic is
 implemented. Generate only the code required by the current task. Keep the
@@ -195,8 +197,9 @@ Run validation first:
 ```
 
 Do not run `-Apply` unless validation succeeds and its report enumerates the
-same asset/package set the user authorized. Back up every package and sidecar
-outside `Content`, then run the same command with `-Apply`.
+same asset/package set from the current request and the validated Commandlet.
+Back up every package and sidecar outside `Content`, then run the same command
+with `-Apply`.
 
 Never substitute `UnrealEditor.exe` if the command editor fails. If Unreal tries
 to show a prompt, opens a window, requests interactive authentication, or hangs
