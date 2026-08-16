@@ -10,6 +10,21 @@
 | Type-specific payload or graph | Matching Unreal Python/C++ API | Usually | Only if explicitly saved |
 | Interactive visual check | Not supported under the no-window policy; explain and stop | N/A | No |
 
+## Resolve paths locally
+
+- Start from the session working directory. The proactive injection message
+  prints this path; when loaded manually, use the shell current directory.
+  Treat that directory as the search root.
+- Search the working directory and its project trees with bounded commands:
+  `find . -name 'BP_BasePlayer.uasset'` in Git Bash, or
+  `Get-ChildItem -Path . -Recurse -Filter 'BP_BasePlayer.uasset' -File` in
+  PowerShell.
+- Locate the nearest `.uproject` upward (or a project directory directly below),
+  then search that root's `Content` and `Plugins/*/Content` trees.
+- Never run `find /`, drive-root scans, user-profile scans, or whole-engine
+  scans to locate an asset. If the asset is not found in the workspace and the
+  user supplied no path, report the missing path and stop.
+
 ## Match the engine
 
 Read `EngineAssociation` from the `.uproject`. Resolve launcher versions from `HKLM:\SOFTWARE\EpicGames\Unreal Engine\<version>` and custom build GUIDs from `HKCU:\Software\Epic Games\Unreal Engine\Builds`. Treat a missing exact association as an error when multiple engines exist. Custom forks may add serialization versions unavailable to a stock editor.

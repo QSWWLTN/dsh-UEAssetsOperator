@@ -53,9 +53,35 @@ Use the matching Unreal Editor as the authoritative parser. Treat `.uasset` as a
   Stop safely and explain the requirement; do not retry through an interactive
   executable.
 
+## Locate assets without scanning the whole disk
+
+Always resolve paths from the session working directory shown in the proactive
+injection message (or the shell current directory when this skill is loaded
+manually). Search locally first; never fall back to whole-disk scans.
+
+1. Start with the session working directory. If it is inside an Unreal project,
+   search the project tree for the named asset:
+   - Git Bash: `find . -name 'BP_BasePlayer.uasset' -not -path '*/Intermediate/*' -not -path '*/DerivedDataCache/*'`
+   - PowerShell: `Get-ChildItem -Path . -Recurse -Filter 'BP_BasePlayer.uasset' -File | ForEach-Object FullName`
+   Keep adjacent `.uexp`, `.ubulk`, and `.uptnl` files with the match.
+2. If the working directory is not the project root, find the nearest `.uproject`
+   upward or a project directory directly below (`find .. -maxdepth 2 -name '*.uproject'`
+   or `Get-ChildItem -Path .. -Depth 1 -Filter '*.uproject' -File`), then search
+   that root's `Content` and `Plugins/*/Content` trees.
+3. Pass the resulting absolute path to `ue_uasset_inspect`. Relative paths are
+   resolved against the session working directory.
+4. Do not use `find /`, drive-root scans, scans of the user profile, or scans of
+   the whole Unreal Engine installation. Whole-disk discovery is prohibited for
+   locating an asset.
+5. If the asset is not under the session working directory or its nearest
+   project and the user supplied no explicit path, stop and report the missing
+   project/asset path instead of widening the search to the whole disk.
+
 ## Inspect an asset
 
-1. Locate the `.uproject`, target `.uasset`, and adjacent `.uexp`, `.ubulk`, or `.uptnl` files. Preserve sidecars as one unit.
+1. Follow **Locate assets without scanning the whole disk**, then record the
+   `.uproject`, target `.uasset`, and adjacent `.uexp`, `.ubulk`, or `.uptnl`
+   files. Preserve sidecars as one unit.
 2. Call `ue_uasset_inspect` with `mode: "resolve"` first when the project,
    engine association, or virtual package path is uncertain.
 3. Call it with the default `registry` mode for normal inspection. This scans

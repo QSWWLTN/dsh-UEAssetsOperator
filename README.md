@@ -11,6 +11,9 @@
   `BP_*` 等资产名时，插件会**主动注入**上述两个工具 schema 和完整
   `ue-uasset-operator` 操作说明，引导模型直接调用原生工具而不是用
   `strings`、十六进制或自写脚本解析 `.uasset`。
+- 资产路径解析始终从会话工作目录或最近的 `.uproject` 根开始做**有界搜索**，
+  禁止 `find /`、盘符根或整个引擎目录的全盘扫描；工作区未命中时报告缺失
+  路径，而不是扩大扫描范围。
 - 当宿主提供 `skills` 服务时，通过 `ctx.skills.register()` 注册配套的
   DSH 内置操作说明；仅提供 `tools` 的极简宿主仍可使用原生工具。
 - `skills/ue-uasset-operator` 保存 PowerShell 启动器、Unreal Python
