@@ -1,4 +1,10 @@
-# Register globally so every agent preset inherits the UE tools and skill.
+# Bundle layer for @deepseek-dsh-desktop/dsh-ue-uasset-operator.
+# package.json declares `dsh.bundle.patch`, so `dsh plugin add` applies this
+# layer automatically when the package is installed as a profile dependency.
+#
+# PITFALL: `name` is a PACKAGE NAME resolved from the profile's node_modules,
+# not a relative file path.
+# The root registration lets every agent preset inherit the UE tools and skill.
 - insert:
     - id: ue-uasset-operator
       name: '@deepseek-dsh-desktop/dsh-ue-uasset-operator'

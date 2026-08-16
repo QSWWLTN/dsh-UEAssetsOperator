@@ -1,7 +1,6 @@
 {
   "name": "@deepseek-dsh-desktop/dsh-ue-uasset-operator",
   "version": "1.2.2",
-  "private": true,
   "description": "Native DSH tools for Unreal Engine uasset inspection and the Blueprint node edits exposed by built-in UE Python",
   "type": "module",
   "main": "lib/index.js",
@@ -25,11 +24,15 @@
     "dsh",
     "unreal-engine",
     "blueprint",
-    "uasset"
+    "uasset",
+    "dsh-plugin"
   ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

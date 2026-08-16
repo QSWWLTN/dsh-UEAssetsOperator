@@ -44,15 +44,26 @@ insert 块。重启 EAC 后生效。这个入口没有额外 npm 运行时依赖
 
 ## 安装到普通 DSH 环境
 
-插件也包含 `cordis.patch.yml` bundle。环境已经安装 `dsh` CLI 与 `pnpm` 时，
-可以执行：
+### 推荐：bundle 安装
+
+插件包含 `cordis.patch.yml` bundle。环境已经安装 `dsh` CLI 与 `pnpm` 时，
+可以直接安装到目标 profile：
 
 ```powershell
-dsh plugin --profile web add X:\Tools\dsh-UEAssetsOperator
+dsh plugin --profile my-profile add X:\Tools\dsh-UEAssetsOperator
+```
+
+该命令会把插件安装到 profile 的依赖中，并自动写入
+`dsh.profile.bundles`。发布到 npm 后也可以按包名安装：
+
+```powershell
+dsh plugin --profile my-profile add @deepseek-dsh-desktop/dsh-ue-uasset-operator
 ```
 
 EAC 安装包未附带 `pnpm`，应使用上一节的 profile patch 方式。不要同时使用
 bundle 和手工 insert 块，否则 DSH 会因重复 loader id 拒绝启动。
+
+### 外部 patch
 
 开发时也可以把同样的 insert 块保存为 `ue-assets.patch.yml`，再启动独立 DSH：
 
