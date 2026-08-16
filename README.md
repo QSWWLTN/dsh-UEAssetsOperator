@@ -19,7 +19,27 @@
 
 ## 安装到 DSH 环境
 
-1. 将本仓库克隆或复制到固定目录，例如：
+### 推荐：`dsh plugin add`
+
+本仓库的 `package.json` 已声明 `dsh.bundle`，根目录的
+`cordis.patch.yml` 会作为 bundle layer 自动应用，因此可直接安装：
+
+```powershell
+git clone https://github.com/QSWWLTN/dsh-UEAssetsOperator.git X:\Tools\dsh-UEAssetsOperator
+cd X:\Tools
+dsh plugin --profile my-profile add X:\Tools\dsh-UEAssetsOperator
+```
+
+`dsh plugin add` 会把插件安装到 profile 的 pnpm 依赖中，并自动写入
+`dsh.profile.bundles`。若插件已发布到 npm，也可以直接按包名安装：
+
+```powershell
+dsh plugin --profile my-profile add @deepseek-dsh-desktop/dsh-ue-uasset-operator
+```
+
+### 手动 patch（备用）
+
+1. 将本仓库克隆或复制到固定目录并安装依赖：
 
    ```powershell
    git clone https://github.com/QSWWLTN/dsh-UEAssetsOperator.git X:\Tools\dsh-UEAssetsOperator
