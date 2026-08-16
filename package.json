@@ -9,11 +9,14 @@
     "test": "node --test"
   },
   "exports": {
-    ".": "./lib/index.js"
+    ".": "./lib/index.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
   },
   "files": [
     "lib/index.js",
     "skills/**/*",
+    "cordis.patch.yml",
     "README.md",
     "LICENSE"
   ],
@@ -24,9 +27,9 @@
     "blueprint",
     "uasset"
   ],
-  "peerDependencies": {
-    "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/dsh-skill": "^0.1.0-rc.6",
-    "@deepseek-ai/dsh-tools": "^0.1.0-rc.6"
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
   }
 }

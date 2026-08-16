@@ -1,0 +1,4 @@
+# Register globally so every agent preset inherits the UE tools and skill.
+- insert:
+    - id: ue-uasset-operator
+      name: '@deepseek-dsh-desktop/dsh-ue-uasset-operator'

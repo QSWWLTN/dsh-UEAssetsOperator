@@ -11,6 +11,18 @@ exposed by built-in Unreal Python. Both tools are registered by this DSH
 plugin and return structured JSON directly; do not route routine operations
 through Codex skills or construct an ad-hoc shell command.
 
+In Anchored Standard, either native tool can be absent from the current tool
+catalog until explicitly unlocked. When `dev_tool_search` is available and a
+native UE tool is absent, call it with the exact names below; do not combine
+both names into a free-text `query`:
+
+```json
+{"toolNames":["ue_uasset_inspect","ue_blueprint_python_edit"]}
+```
+
+The tools become available on the next request. In Minimal presets they are
+registered globally and can be called directly when present in the catalog.
+
 For arbitrary Blueprint graph authoring that Python cannot expose, use a
 task-specific `UCommandlet` in an existing project Editor module only after the
 user authorizes project source changes, compilation, and asset writes. This is
